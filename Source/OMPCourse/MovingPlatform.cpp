@@ -6,9 +6,9 @@
 AMovingPlatform::AMovingPlatform()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	SetMobility(EComponentMobility::Movable);
+	UE_LOG(LogTemp, Warning, TEXT("LeWhat?"));
 }
 
 void AMovingPlatform::BeginPlay()
@@ -22,7 +22,6 @@ void AMovingPlatform::BeginPlay()
 		SetReplicates(true);
 		SetReplicateMovement(true);
 		FVector StartPosition = GetActorLocation();
-		//GlobalTargetLocation = GetTransform().TransformPosition(TargetLocation);
 
 		GlobalTargets.Add(StartPosition);
 
