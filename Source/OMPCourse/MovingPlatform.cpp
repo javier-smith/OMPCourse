@@ -5,87 +5,93 @@
 
 AMovingPlatform::AMovingPlatform()
 {
-	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = true;
 
-	SetMobility(EComponentMobility::Movable);
-	UE_LOG(LogTemp, Warning, TEXT("LeWhat?"));
+    SetMobility(EComponentMobility::Movable);
+    UE_LOG(LogTemp, Warning, TEXT("LeWhat?"));
 }
 
 void AMovingPlatform::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 
-	UE_LOG(LogTemp, Warning, TEXT("BeginPlay"));
+    if (HasAuthority())
+    {
+        SetReplicates(true);
+        SetReplicateMovement(true);
+        FVector StartPosition = GetActorLocation();
 
-	if (HasAuthority()) 
-	{
-		SetReplicates(true);
-		SetReplicateMovement(true);
-		FVector StartPosition = GetActorLocation();
+        GlobalTargets.Add(StartPosition);
+        float trackLength = 0;
 
-		GlobalTargets.Add(StartPosition);
+        for (int i = 0; i < TargetLocation.Num(); i++)
+        {
+            FVector newPos = GetTransform().TransformPosition(TargetLocation[i]);
+            GlobalTargets.Add(newPos);
+            trackLength += (GlobalTargets[i + 1] - GlobalTargets[i]).Size();
+        }
 
-		for (int i = 1; i < TargetLocation.Num(); i++)
-		{
-			GlobalTargets.Add(StartPosition + TargetLocation[i]);
-		}
+        speed = trackLength / LapTime;
 
-		speed = LapTime;
-	}
+        UE_LOG(LogTemp, Warning, TEXT("Speed: %f"), speed);
+    }
 }
 
 void AMovingPlatform::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
 
-	UE_LOG(LogTemp, Warning, TEXT("Ticking"));
+    if (HasAuthority() && activeTriggers > 0)
+    {
+        ellapsedTime += DeltaTime;
+        FVector Location = GetActorLocation();
+        FVector currentTarget = GlobalTargets[targetIndex];
+        float dist = FVector::Distance(Location, currentTarget);
 
-	if (HasAuthority() && activeTriggers > 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Has auth n shit"));
-		ellapsedTime += DeltaTime;
-		FVector Location = GetActorLocation();
-		FVector currentTarget = GlobalTargets[targetIndex];
-		float dist = FVector::Distance(Location, currentTarget);
+        if (dist < speed * DeltaTime)
+        {
+            Location = currentTarget;
 
-		if (dist < speed * DeltaTime)
-		{
-			Location = currentTarget;
 
-			if (ellapsedTime >= LapTime) {
-				ellapsedTime = 0;
 
-				if (targetIndex == 0 || targetIndex == GlobalTargets.Num())
-				{
-					reverse = !reverse;
-					UE_LOG(LogTemp, Warning, TEXT("reversing"));
-				} 
+            if (targetIndex == 0 || targetIndex == GlobalTargets.Num() - 1)
+            {
+                if (ellapsedTime >= LapTime + WaitTime)
+                {
+                    ellapsedTime = 0;
+                    reverse = !reverse;
+                    UE_LOG(LogTemp, Warning, TEXT("reversing"));
+                    targetIndex += reverse ? -1 : 1;
+                }
+            }
+            else
+            {
+                targetIndex += reverse ? -1 : 1;
+            }
 
-				targetIndex += reverse ? -1 : 1;
-			}
-		} 
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Adding speed"));
-			FVector direction = (currentTarget - Location).GetSafeNormal();
-			Location += direction * speed * DeltaTime;
-		}
 
-		SetActorLocation(Location);
-		
-	}
+        }
+        else
+        {
+            FVector direction = (currentTarget - Location).GetSafeNormal();
+            Location += direction * speed * DeltaTime;
+        }
+
+        SetActorLocation(Location);
+
+    }
 
 }
 
 void AMovingPlatform::AddActiveTrigger()
 {
-	activeTriggers++;
+    activeTriggers++;
 }
 
 void AMovingPlatform::RemoveActiveTrigger()
 {
-	if (activeTriggers > 0)
-	{
-		activeTriggers--;
-	}
+    if (activeTriggers > 0)
+    {
+        activeTriggers--;
+    }
 }

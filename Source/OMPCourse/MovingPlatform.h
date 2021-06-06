@@ -26,16 +26,19 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	float LapTime;
+	UPROPERTY(EditAnywhere)
+	float WaitTime;
+	UPROPERTY(EditAnywhere)
+	int activeTriggers = 1;
 
 	void AddActiveTrigger();
 	void RemoveActiveTrigger();
 
 private:
 	TArray<FVector> GlobalTargets;
-	int targetIndex;
+	int targetIndex = 1;
 	float speed;
 	bool waitSync;
 	bool reverse;
 	float ellapsedTime;
-	int activeTriggers = 1;
 };
